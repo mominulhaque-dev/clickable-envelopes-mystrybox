@@ -1,0 +1,266 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// SQLite for local development. The schema avoids SQLite-only features so the
+// datasource can be switched to PostgreSQL for production with only a datasource
+// + migration change. Enums are modelled as String + application-level guards
+// (see app/lib/constants.js) because SQLite does not support native enums.
+datasource db {
+  provider = "sqlite"
+  url      = "file:dev.sqlite"
+}
+
+// ---------------------------------------------------------------------------
+// Shopify session storage (managed by @shopify/shopify-app-session-storage-prisma)
+// ---------------------------------------------------------------------------
+model Session {
+  id            String    @id
+  shop          String
+  state         String
+  isOnline      Boolean   @default(false)
+  scope         String?
+  expires       DateTime?
+  accessToken   String
+  userId        BigInt?
+  firstName     String?
+  lastName      String?
+  email         String?
+  accountOwner  Boolean   @default(false)
+  locale        String?
+  collaborator  Boolean?  @default(false)
+  emailVerified Boolean?  @default(false)
+
+  refreshToken        String?
+  refreshTokenExpires DateTime?
+}
+
+// ---------------------------------------------------------------------------
+// Per-shop application settings
+// ---------------------------------------------------------------------------
+model AppSettings {
+  id                 String   @id @default(cuid())
+  shop               String   @unique
+  // Billing seam — deferred. "free" until a paid plan is introduced.
+  plan               String   @default("free")
+  defaultEnvelopeCount Int    @default(100)
+  brandColor         String   @default("#5C6AC4")
+  reducedMotion      Boolean  @default(false)
+  loginPromptText    String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// Campaigns
+// ---------------------------------------------------------------------------
+model Campaign {
+  id                  String   @id @default(cuid())
+  shop                String
+  name                String
+  description         String?
+  bannerUrl           String?
+  // DRAFT | ACTIVE | PAUSED | ARCHIVED  (see CAMPAIGN_STATUS)
+  status              String   @default("DRAFT")
+  startAt             DateTime?
+  endAt               DateTime?
+  envelopeCount       Int      @default(100)
+  maxWinners          Int?
+  maxOpensPerCustomer Int      @default(1)
+  // House edge 0-100: probability weight reserved for "no prize" outcomes.
+  houseEdge           Int      @default(0)
+  // ALL | PRODUCTS | COLLECTIONS  (see ELIGIBILITY_MODE)
+  eligibilityMode     String   @default("ALL")
+  winnersCount        Int      @default(0)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  eligibility CampaignEligibility[]
+  rewards     Reward[]
+  envelopes   Envelope[]
+  claims      Claim[]
+
+  @@index([shop, status])
+  @@index([shop, createdAt])
+}
+
+// Product/collection targets that make an order eligible for a campaign.
+model CampaignEligibility {
+  id         String   @id @default(cuid())
+  campaignId String
+  // PRODUCT | COLLECTION
+  targetType String
+  // Shopify GID e.g. gid://shopify/Product/123
+  gid        String
+  title      String?
+  createdAt  DateTime @default(now())
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, targetType, gid])
+  @@index([campaignId])
+}
+
+// ---------------------------------------------------------------------------
+// Rewards (the prize pool for a campaign)
+// ---------------------------------------------------------------------------
+model Reward {
+  id                String   @id @default(cuid())
+  campaignId        String
+  // FREE_PRODUCT | DISCOUNT | GIFT_CARD | FREE_SHIPPING | COUPON | NO_PRIZE | CUSTOM
+  type              String
+  label             String
+  // Type-specific configuration serialized as JSON string (SQLite has no Json).
+  // e.g. { "kind": "percentage", "amount": 15 } for DISCOUNT.
+  config            String   @default("{}")
+  // null = unlimited inventory.
+  inventoryTotal    Int?
+  inventoryRemaining Int?
+  // Relative weight for the weighted draw. Must be >= 0.
+  probabilityWeight Int      @default(1)
+  // Lower number = higher priority when inventory ties are broken.
+  priority          Int      @default(0)
+  // How long a granted reward stays valid (days). null = no expiry.
+  expiresInDays     Int?
+  claimInstructions String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  envelopes Envelope[]
+  claims    Claim[]
+
+  @@index([campaignId])
+}
+
+// ---------------------------------------------------------------------------
+// Envelopes (the clickable vault grid)
+// ---------------------------------------------------------------------------
+model Envelope {
+  id          String   @id @default(cuid())
+  campaignId  String
+  // 0-based position within the campaign's vault grid.
+  index       Int
+  // UNOPENED | OPENED
+  status      String   @default("UNOPENED")
+  rewardId    String?
+  customerGid String?
+  orderGid    String?
+  openedAt    DateTime?
+  createdAt   DateTime @default(now())
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  reward   Reward?  @relation(fields: [rewardId], references: [id])
+  claim    Claim?
+
+  @@unique([campaignId, index])
+  @@index([campaignId, status])
+  @@index([customerGid])
+}
+
+// ---------------------------------------------------------------------------
+// Claims (a granted reward tied to an opened envelope)
+// ---------------------------------------------------------------------------
+model Claim {
+  id                String   @id @default(cuid())
+  shop              String
+  campaignId        String
+  envelopeId        String   @unique
+  rewardId          String
+  customerGid       String
+  orderGid          String?
+  // PENDING | FULFILLED | EXPIRED | FAILED
+  status            String   @default("PENDING")
+  // Provisioned Shopify resources, when applicable.
+  discountGid       String?
+  giftCardGid       String?
+  code              String?
+  claimInstructions String?
+  expiresAt         DateTime?
+  fulfilledAt       DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  reward   Reward   @relation(fields: [rewardId], references: [id])
+  envelope Envelope @relation(fields: [envelopeId], references: [id], onDelete: Cascade)
+
+  @@index([shop, customerGid])
+  @@index([campaignId])
+}
+
+// ---------------------------------------------------------------------------
+// Eligibility ledger — maintained by order webhooks so verification on the
+// customer hot path is a fast local lookup, not a live Admin API call.
+// ---------------------------------------------------------------------------
+model EligibilityLedger {
+  id              String   @id @default(cuid())
+  shop            String
+  customerGid     String
+  orderGid        String
+  orderName       String?
+  // paid | pending | refunded | partially_refunded | voided | ...
+  financialStatus String?
+  cancelled       Boolean  @default(false)
+  // GIDs of products purchased in the order (JSON string array).
+  productGids     String   @default("[]")
+  // GIDs of collections those products belong to (JSON string array).
+  collectionGids  String   @default("[]")
+  eligible        Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([shop, orderGid])
+  @@index([shop, customerGid])
+}
+
+// ---------------------------------------------------------------------------
+// Audit log — every important open/claim/admin/reset action.
+// ---------------------------------------------------------------------------
+model AuditLog {
+  id        String   @id @default(cuid())
+  shop      String
+  actor     String   // "merchant:<userId>" | "customer:<gid>" | "system"
+  action    String
+  entity    String?
+  entityId  String?
+  meta      String   @default("{}")
+  ip        String?
+  createdAt DateTime @default(now())
+
+  @@index([shop, createdAt])
+  @@index([shop, entity, entityId])
+}
+
+// ---------------------------------------------------------------------------
+// Idempotency keys — dedupe envelope-open requests (double-click / replay).
+// ---------------------------------------------------------------------------
+model IdempotencyKey {
+  id        String   @id @default(cuid())
+  shop      String
+  scope     String
+  key       String
+  response  String?
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@unique([shop, scope, key])
+  @@index([expiresAt])
+}
+
+// ---------------------------------------------------------------------------
+// Rate limiting — sliding-window counters per subject (customer/ip).
+// ---------------------------------------------------------------------------
+model RateLimit {
+  id         String   @id @default(cuid())
+  shop       String
+  bucket     String   // e.g. "open:customer:<gid>" or "open:ip:<hash>"
+  windowStart DateTime
+  count      Int      @default(0)
+
+  @@unique([shop, bucket])
+  @@index([windowStart])
+}

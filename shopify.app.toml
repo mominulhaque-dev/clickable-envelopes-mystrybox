@@ -1,0 +1,69 @@
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+client_id = "33ce3c8202a80c72607fb6b236b04012"
+application_url = "https://example.com"
+embedded = true
+name = "Mystery-Vault"
+handle = "mystery-vault"
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+# read_orders          -> purchase verification + eligibility ledger
+# read_products        -> eligible product/collection pickers
+# write_discounts      -> provision real discount codes as rewards
+# write_gift_cards     -> provision gift card rewards (store must support gift cards)
+scopes = "read_orders,read_products,write_discounts,write_gift_cards"
+
+[app_proxy]
+# Customer-facing Mystery Vault surface. Served under the storefront at
+# https://{shop}/apps/mystery-vault and forwarded to /proxy in the app.
+url = "https://example.com/proxy"
+subpath = "mystery-vault"
+prefix = "apps"
+
+[webhooks]
+api_version = "2026-10"
+
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/app/uninstalled"
+  topics = [ "app/uninstalled" ]
+
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/app/scopes_update"
+  topics = [ "app/scopes_update" ]
+
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/orders/paid"
+  topics = [ "orders/paid" ]
+
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/orders/updated"
+  topics = [ "orders/updated" ]
+
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/orders/cancelled"
+  topics = [ "orders/cancelled" ]
+
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/refunds/create"
+  topics = [ "refunds/create" ]
+
+  # Mandatory GDPR / privacy compliance webhooks (required for App Store approval)
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/customers/data_request"
+  topics = [ "customers/data_request" ]
+
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/customers/redact"
+  topics = [ "customers/redact" ]
+
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/shop/redact"
+  topics = [ "shop/redact" ]
+
+[auth]
+redirect_urls = [ "https://example.com/api/auth" ]
+
+[build]
+include_config_on_deploy = true
+automatically_update_urls_on_dev = true
