@@ -48,18 +48,14 @@ api_version = "2026-10"
   uri = "/webhooks/refunds/create"
   topics = [ "refunds/create" ]
 
-  # Mandatory GDPR / privacy compliance webhooks (required for App Store approval)
-  [[webhooks.subscriptions]]
-  uri = "/webhooks/customers/data_request"
-  topics = [ "customers/data_request" ]
-
-  [[webhooks.subscriptions]]
-  uri = "/webhooks/customers/redact"
-  topics = [ "customers/redact" ]
-
-  [[webhooks.subscriptions]]
-  uri = "/webhooks/shop/redact"
-  topics = [ "shop/redact" ]
+  # Mandatory GDPR / privacy compliance webhooks (required for App Store approval).
+  # These PROTECTED topics must NOT be declared as [[webhooks.subscriptions]] with
+  # `topics = [...]` — `shopify app dev` rejects that. They belong in their own
+  # privacy_compliance block as named endpoint URLs instead.
+  [webhooks.privacy_compliance]
+  customer_data_request_url = "/webhooks/customers/data_request"
+  customer_deletion_url = "/webhooks/customers/redact"
+  shop_deletion_url = "/webhooks/shop/redact"
 
 [auth]
 redirect_urls = [ "https://example.com/api/auth" ]

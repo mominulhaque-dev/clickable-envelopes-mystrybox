@@ -169,7 +169,8 @@ model Claim {
   shop              String
   campaignId        String
   envelopeId        String   @unique
-  rewardId          String
+  // Null when the outcome was "no prize" (house edge with no NO_PRIZE reward row).
+  rewardId          String?
   customerGid       String
   orderGid          String?
   // PENDING | FULFILLED | EXPIRED | FAILED
@@ -185,7 +186,7 @@ model Claim {
   updatedAt         DateTime @updatedAt
 
   campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  reward   Reward   @relation(fields: [rewardId], references: [id])
+  reward   Reward?  @relation(fields: [rewardId], references: [id])
   envelope Envelope @relation(fields: [envelopeId], references: [id], onDelete: Cascade)
 
   @@index([shop, customerGid])
