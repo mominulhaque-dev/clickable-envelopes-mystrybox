@@ -50,6 +50,9 @@ module.exports = {
       },
       rules: {
         "react/no-unknown-property": ["error", { ignore: ["variant"] }],
+        // This is a JS app that does not use prop-types; type safety comes from
+        // typecheck (tsc) over JSDoc, not runtime prop-types.
+        "react/prop-types": "off",
       },
     },
 

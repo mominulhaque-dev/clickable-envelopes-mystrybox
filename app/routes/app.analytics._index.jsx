@@ -9,7 +9,7 @@ export const loader = async ({ request }) => {
   const shop = session.shop;
   const [overview, topCampaigns] = await Promise.all([
     getShopOverview(shop),
-    getTopCampaigns(shop, 5),
+    getTopCampaigns(shop, 10),
   ]);
   return { overview, topCampaigns };
 };
@@ -23,39 +23,28 @@ const STATUS_TONE = {
   [CAMPAIGN_STATUS.ARCHIVED]: "neutral",
 };
 
-export default function Dashboard() {
+export default function Analytics() {
   const { overview, topCampaigns } = useLoaderData();
 
   return (
-    <s-page heading="Mystery Vault">
-      <s-button slot="primary-action" href="/app/campaigns/new" variant="primary">
-        Create campaign
-      </s-button>
-
-      <s-section heading="Overview">
+    <s-page heading="Analytics">
+      <s-section heading="Shop performance">
         <s-stack direction="inline" gap="base" wrap="wrap">
-          <Metric label="Campaigns" value={overview.campaignsTotal} />
-          <Metric label="Active" value={overview.campaignsActive} />
-          <Metric label="Envelopes opened" value={overview.openedEnvelopes} />
+          <Metric label="Total campaigns" value={overview.campaignsTotal} />
+          <Metric label="Active campaigns" value={overview.campaignsActive} />
+          <Metric label="Total envelopes" value={overview.totalEnvelopes} />
+          <Metric label="Opened" value={overview.openedEnvelopes} />
           <Metric label="Remaining" value={overview.remainingEnvelopes} />
           <Metric label="Rewards claimed" value={overview.claimedRewards} />
-          <Metric label="Participation" value={pct(overview.participationRate)} />
+          <Metric label="Participation rate" value={pct(overview.participationRate)} />
           <Metric label="Win rate" value={pct(overview.winRate)} />
-          <Metric label="Participants" value={overview.uniqueParticipants} />
+          <Metric label="Unique participants" value={overview.uniqueParticipants} />
         </s-stack>
       </s-section>
 
-      <s-section heading="Top campaigns">
+      <s-section heading="Campaigns by winners">
         {topCampaigns.length === 0 ? (
-          <s-stack direction="block" gap="base">
-            <s-paragraph>
-              No campaigns yet. Create your first Mystery Vault campaign to get
-              started.
-            </s-paragraph>
-            <s-button href="/app/campaigns/new" variant="primary">
-              Create campaign
-            </s-button>
-          </s-stack>
+          <s-paragraph>No campaign data yet.</s-paragraph>
         ) : (
           <s-table>
             <s-table-header-row>
@@ -89,12 +78,7 @@ export default function Dashboard() {
 
 function Metric({ label, value }) {
   return (
-    <s-box
-      padding="base"
-      borderWidth="base"
-      borderRadius="base"
-      minInlineSize="140px"
-    >
+    <s-box padding="base" borderWidth="base" borderRadius="base" minInlineSize="150px">
       <s-stack direction="block" gap="tight">
         <s-text tone="subdued">{label}</s-text>
         <s-heading>{value}</s-heading>
