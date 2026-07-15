@@ -1,0 +1,225 @@
+.mystery-vault {
+  --mv-brand: #5c6ac4;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem;
+  font-family: inherit;
+}
+
+.mystery-vault__header {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.mystery-vault__title {
+  margin: 0 0 0.25rem;
+  font-size: 1.75rem;
+}
+
+.mystery-vault__subheading {
+  margin: 0;
+  opacity: 0.75;
+}
+
+.mystery-vault__status {
+  text-align: center;
+  min-height: 1.5rem;
+  margin: 0.75rem 0;
+  font-weight: 500;
+}
+
+.mystery-vault__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(56px, 1fr));
+  gap: 0.5rem;
+}
+
+.mystery-vault__cell {
+  aspect-ratio: 1 / 1;
+  border: 2px solid var(--mv-brand);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--mv-brand) 8%, transparent);
+  color: var(--mv-brand);
+  font-size: 1.25rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.12s ease, background 0.12s ease;
+}
+
+.mystery-vault__cell:hover:not(:disabled) {
+  transform: translateY(-2px);
+  background: color-mix(in srgb, var(--mv-brand) 18%, transparent);
+}
+
+.mystery-vault__cell:focus-visible {
+  outline: 3px solid var(--mv-brand);
+  outline-offset: 2px;
+}
+
+.mystery-vault__cell.is-opened {
+  background: color-mix(in srgb, var(--mv-brand) 4%, transparent);
+  opacity: 0.55;
+  cursor: default;
+}
+
+.mystery-vault__cell.is-loading {
+  animation: mv-pulse 0.8s ease-in-out infinite;
+}
+
+@keyframes mv-pulse {
+  50% { opacity: 0.4; }
+}
+
+/* Respect the merchant's reduced-motion setting and the OS preference. */
+@media (prefers-reduced-motion: reduce) {
+  .mystery-vault__cell { transition: none; }
+  .mystery-vault__cell.is-loading { animation: none; }
+}
+
+.mystery-vault__modal {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 9999;
+  padding: 1rem;
+}
+
+.mystery-vault__modal[hidden] {
+  display: none;
+}
+
+.mystery-vault__modal-card {
+  position: relative;
+  background: #fff;
+  color: #1a1a1a;
+  border-radius: 14px;
+  padding: 2rem 1.75rem;
+  max-width: 420px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+}
+
+.mystery-vault__close {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.75rem;
+  border: 0;
+  background: none;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  color: #666;
+}
+
+.mystery-vault__code {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+
+.mystery-vault__code code {
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 0.4rem 0.75rem;
+  border: 2px dashed var(--mv-brand);
+  border-radius: 8px;
+  color: var(--mv-brand);
+}
+
+.mystery-vault__code button {
+  border: 0;
+  background: var(--mv-brand);
+  color: #fff;
+  padding: 0.45rem 0.9rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.mystery-vault__result-message {
+  opacity: 0.8;
+  margin: 0.5rem 0 0;
+}
+
+/* --- My Rewards block --- */
+.mv-rewards {
+  --mv-brand: #5c6ac4;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem;
+  font-family: inherit;
+}
+
+.mv-rewards__title {
+  margin: 0 0 1rem;
+  font-size: 1.5rem;
+  text-align: center;
+}
+
+.mv-rewards__status {
+  text-align: center;
+  opacity: 0.8;
+}
+
+.mv-rewards__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 1rem;
+}
+
+.mv-rewards__item {
+  border: 2px solid color-mix(in srgb, var(--mv-brand) 30%, transparent);
+  border-radius: 12px;
+  padding: 1.25rem;
+}
+
+.mv-rewards__item-title {
+  margin: 0 0 0.5rem;
+  color: var(--mv-brand);
+}
+
+.mv-rewards__detail {
+  margin: 0 0 0.5rem;
+  font-weight: 600;
+}
+
+.mv-rewards__msg,
+.mv-rewards__expiry {
+  margin: 0.35rem 0 0;
+  opacity: 0.75;
+  font-size: 0.9rem;
+}
+
+.mv-rewards__code {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.75rem 0;
+}
+
+.mv-rewards__code code {
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 0.4rem 0.75rem;
+  border: 2px dashed var(--mv-brand);
+  border-radius: 8px;
+  color: var(--mv-brand);
+}
+
+.mv-rewards__copy {
+  border: 0;
+  background: var(--mv-brand);
+  color: #fff;
+  padding: 0.45rem 0.9rem;
+  border-radius: 8px;
+  cursor: pointer;
+}

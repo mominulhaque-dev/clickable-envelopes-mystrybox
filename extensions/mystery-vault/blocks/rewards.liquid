@@ -1,0 +1,62 @@
+{% comment %}
+  Mystery Vault "My Rewards" app block. Merchants create a page (e.g. /pages/my-rewards)
+  and drop this block on it. It lists the logged-in customer's won rewards
+  (codes, gift cards, instructions) fetched from the app proxy /rewards endpoint.
+
+  Like the vault grid, all data is loaded at runtime from the proxy so this
+  block stays static and cache-friendly, and only the customer's own rewards
+  are ever returned (enforced server-side).
+{% endcomment %}
+
+<div
+  id="mystery-vault-rewards"
+  class="mv-rewards"
+  data-proxy-base="/apps/{{ block.settings.proxy_prefix | default: 'mystery-vault' }}"
+  {% if block.settings.campaign_id != blank %}data-campaign="{{ block.settings.campaign_id }}"{% endif %}
+  data-logged-in="{{ customer.id | default: '' }}"
+  style="--mv-brand: {{ block.settings.brand_color | default: '#5C6AC4' }};"
+>
+  <div class="mv-rewards__header">
+    <h2 class="mv-rewards__title">{{ block.settings.heading | default: 'My Rewards' }}</h2>
+  </div>
+
+  <div class="mv-rewards__status" data-mvr-status role="status" aria-live="polite"></div>
+  <ul class="mv-rewards__list" data-mvr-list></ul>
+</div>
+
+{{ 'vault.css' | asset_url | stylesheet_tag }}
+<script src="{{ 'rewards.js' | asset_url }}" defer></script>
+
+{% schema %}
+{
+  "name": "Mystery Vault Rewards",
+  "target": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "My Rewards"
+    },
+    {
+      "type": "text",
+      "id": "campaign_id",
+      "label": "Campaign ID (optional)",
+      "info": "Leave blank to use the most recent active campaign."
+    },
+    {
+      "type": "color",
+      "id": "brand_color",
+      "label": "Brand color",
+      "default": "#5C6AC4"
+    },
+    {
+      "type": "text",
+      "id": "proxy_prefix",
+      "label": "App proxy subpath",
+      "default": "mystery-vault",
+      "info": "Must match the app proxy subpath configured for the app."
+    }
+  ]
+}
+{% endschema %}

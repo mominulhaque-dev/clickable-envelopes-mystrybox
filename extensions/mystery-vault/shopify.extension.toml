@@ -1,0 +1,11 @@
+# Theme app extension: the customer-facing Mystery Vault grid.
+# Merchants add the "Mystery Vault" app block to any page through the theme
+# editor. The block's JS talks to the app proxy (/apps/mystery-vault/*) for all
+# state and open actions, so the reward logic stays server-authoritative.
+api_version = "2026-10"
+
+[[extensions]]
+name = "Mystery Vault"
+handle = "mystery-vault"
+uid = "baab6c06-d178-66a4-66ac-4c430a556d8680c62d4a"
+type = "theme"
