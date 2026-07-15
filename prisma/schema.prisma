@@ -75,6 +75,26 @@ model Campaign {
   // ALL | PRODUCTS | COLLECTIONS  (see ELIGIBILITY_MODE)
   eligibilityMode     String   @default("ALL")
   winnersCount        Int      @default(0)
+
+  // ---- Campaign-level discount code ------------------------------------
+  // A campaign owns ONE shared Shopify discount code. All DISCOUNT / FREE_SHIPPING
+  // rewards in the campaign reuse it, so we never create one code per reward or
+  // per envelope. The code's value is defined here (not per reward), and its
+  // usage limit tracks the number of winning envelopes.
+  //
+  // discountKind: "percentage" | "fixed_amount" | "free_shipping" | null (none configured)
+  discountKind        String?
+  // Percentage 0-100, or a fixed amount in the shop currency. Ignored for free_shipping.
+  discountAmount      Float?
+  // The human-facing code (e.g. MV-AB12CD34). Generated once, then reused.
+  discountCode        String?
+  // The Shopify DiscountCodeNode GID, so we can update the usage limit as wins grow.
+  discountGid         String?
+  // Mirror of the code's Shopify usage limit; kept in sync with winning envelopes.
+  discountUsageLimit  Int?
+  // Whether the shared code should be single-use per customer.
+  discountOncePerCustomer Boolean @default(true)
+
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 

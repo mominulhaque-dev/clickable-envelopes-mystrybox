@@ -3,39 +3,90 @@
   vault script. All dynamic state comes from the app proxy at runtime, so this
   block itself is static and cache-friendly.
 
-  The proxy base ({{ shop_proxy }}) resolves to /apps/mystery-vault on the
-  storefront; Shopify signs and forwards those requests to the app.
+  The proxy base resolves to /apps/mystery-vault on the storefront; Shopify
+  signs and forwards those requests to the app.
 {% endcomment %}
 
 <div
   id="mystery-vault"
-  class="mystery-vault"
+  class="mv"
   data-proxy-base="/apps/{{ block.settings.proxy_prefix | default: 'mystery-vault' }}"
   {% if block.settings.campaign_id != blank %}data-campaign="{{ block.settings.campaign_id }}"{% endif %}
   data-logged-in="{{ customer.id | default: '' }}"
-  style="--mv-brand: {{ block.settings.brand_color | default: '#5C6AC4' }};"
+  data-login-url="{{ routes.account_login_url }}?return_url={{ request.path | url_encode }}"
+  style="
+    --mv-brand: {{ block.settings.brand_color | default: '#6D5EF8' }};
+    --mv-accent: {{ block.settings.accent_color | default: '#F5B301' }};
+    --mv-radius: {{ block.settings.corner_radius | default: 20 }}px;
+  "
 >
-  <div class="mystery-vault__header">
-    <h2 class="mystery-vault__title">{{ block.settings.heading | default: 'Mystery Vault' }}</h2>
-    {% if block.settings.subheading != blank %}
-      <p class="mystery-vault__subheading">{{ block.settings.subheading }}</p>
+  <div class="mv__shell">
+    <header class="mv__header">
+      {% if block.settings.eyebrow != blank %}
+        <span class="mv__eyebrow">
+          <svg viewBox="0 0 24 24" aria-hidden="true" class="mv__eyebrow-icon"><path d="M13 2L4.5 12.5h5L11 22l8.5-10.5h-5z"/></svg>
+          {{ block.settings.eyebrow }}
+        </span>
+      {% endif %}
+      <h2 class="mv__title">{{ block.settings.heading | default: 'Mystery Vault' }}</h2>
+      {% if block.settings.subheading != blank %}
+        <p class="mv__subheading">{{ block.settings.subheading }}</p>
+      {% endif %}
+    </header>
+
+    {% comment %} Live stat chips, filled in by JS. {% endcomment %}
+    <div class="mv__stats" data-mv-stats hidden>
+      <div class="mv__stat">
+        <span class="mv__stat-value" data-mv-stat-remaining>—</span>
+        <span class="mv__stat-label">Envelopes left</span>
+      </div>
+      <div class="mv__stat">
+        <span class="mv__stat-value" data-mv-stat-opens>—</span>
+        <span class="mv__stat-label">Your opens</span>
+      </div>
+      <div class="mv__stat">
+        <span class="mv__stat-value mv__stat-value--live"><span class="mv__pulse-dot"></span>Live</span>
+        <span class="mv__stat-label">Prizes dropping now</span>
+      </div>
+    </div>
+
+    <div class="mv__status" data-mv-status role="status" aria-live="polite"></div>
+
+    {% comment %} Login gate, shown by JS when the visitor is not logged in. {% endcomment %}
+    <a class="mv__login" data-mv-login hidden href="#">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 7L9.6 8.4l2.6 2.6H2v2h10.2l-2.6 2.6L11 17l5-5zM20 19h-8v2h8a2 2 0 002-2V5a2 2 0 00-2-2h-8v2h8z"/></svg>
+      <span data-mv-login-text>Log in to play</span>
+    </a>
+
+    <div class="mv__grid" data-mv-grid aria-label="Mystery envelopes"></div>
+
+    {% if block.settings.footnote != blank %}
+      <p class="mv__footnote">{{ block.settings.footnote }}</p>
     {% endif %}
   </div>
 
-  <div class="mystery-vault__status" data-mv-status role="status" aria-live="polite"></div>
-  <div class="mystery-vault__grid" data-mv-grid aria-label="Mystery envelopes"></div>
-
   {% comment %} Result modal, populated by JS on open. {% endcomment %}
-  <div class="mystery-vault__modal" data-mv-modal hidden>
-    <div class="mystery-vault__modal-card" role="dialog" aria-modal="true" aria-labelledby="mv-modal-title">
-      <button type="button" class="mystery-vault__close" data-mv-close aria-label="Close">&times;</button>
-      <h3 id="mv-modal-title" data-mv-result-title></h3>
-      <p data-mv-result-detail></p>
-      <div class="mystery-vault__code" data-mv-result-code hidden>
-        <code data-mv-code-value></code>
-        <button type="button" data-mv-copy>Copy</button>
+  <div class="mv__overlay" data-mv-modal hidden>
+    <canvas class="mv__confetti" data-mv-confetti aria-hidden="true"></canvas>
+    <div class="mv__card" role="dialog" aria-modal="true" aria-labelledby="mv-modal-title">
+      <button type="button" class="mv__close" data-mv-close aria-label="Close">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.3 5.7L12 12l6.3 6.3-1.4 1.4L10.6 13.4 4.3 19.7 2.9 18.3 9.2 12 2.9 5.7 4.3 4.3l6.3 6.3 6.3-6.3z"/></svg>
+      </button>
+
+      <div class="mv__reward-icon" data-mv-reward-icon></div>
+      <h3 id="mv-modal-title" class="mv__reward-title" data-mv-result-title></h3>
+      <p class="mv__reward-detail" data-mv-result-detail></p>
+
+      <div class="mv__code" data-mv-result-code hidden>
+        <code class="mv__code-value" data-mv-code-value></code>
+        <button type="button" class="mv__copy" data-mv-copy aria-label="Copy code">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 1H4a2 2 0 00-2 2v14h2V3h12zm3 4H8a2 2 0 00-2 2v14a2 2 0 002 2h11a2 2 0 002-2V7a2 2 0 00-2-2zm0 16H8V7h11z"/></svg>
+          <span>Copy</span>
+        </button>
       </div>
-      <p class="mystery-vault__result-message" data-mv-result-message></p>
+
+      <p class="mv__reward-message" data-mv-result-message></p>
+      <button type="button" class="mv__cta" data-mv-close>Continue shopping</button>
     </div>
   </div>
 </div>
@@ -50,27 +101,63 @@
   "settings": [
     {
       "type": "text",
+      "id": "eyebrow",
+      "label": "Eyebrow badge",
+      "default": "Limited time reward drop"
+    },
+    {
+      "type": "text",
       "id": "heading",
       "label": "Heading",
-      "default": "Mystery Vault"
+      "default": "Open your Mystery Vault"
     },
     {
       "type": "text",
       "id": "subheading",
       "label": "Subheading",
-      "default": "Pick an envelope to reveal your reward"
+      "default": "Pick an envelope and reveal an exclusive reward. Every open wins something."
+    },
+    {
+      "type": "text",
+      "id": "footnote",
+      "label": "Footnote",
+      "default": "One open per customer. Rewards applied instantly at checkout."
+    },
+    {
+      "type": "header",
+      "content": "Appearance"
+    },
+    {
+      "type": "color",
+      "id": "brand_color",
+      "label": "Brand color",
+      "default": "#6D5EF8"
+    },
+    {
+      "type": "color",
+      "id": "accent_color",
+      "label": "Accent / win color",
+      "default": "#F5B301"
+    },
+    {
+      "type": "range",
+      "id": "corner_radius",
+      "label": "Corner radius",
+      "min": 0,
+      "max": 32,
+      "step": 2,
+      "unit": "px",
+      "default": 20
+    },
+    {
+      "type": "header",
+      "content": "Advanced"
     },
     {
       "type": "text",
       "id": "campaign_id",
       "label": "Campaign ID (optional)",
       "info": "Leave blank to show the most recent active campaign."
-    },
-    {
-      "type": "color",
-      "id": "brand_color",
-      "label": "Brand color",
-      "default": "#5C6AC4"
     },
     {
       "type": "text",

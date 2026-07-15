@@ -14,7 +14,7 @@
   data-proxy-base="/apps/{{ block.settings.proxy_prefix | default: 'mystery-vault' }}"
   {% if block.settings.campaign_id != blank %}data-campaign="{{ block.settings.campaign_id }}"{% endif %}
   data-logged-in="{{ customer.id | default: '' }}"
-  style="--mv-brand: {{ block.settings.brand_color | default: '#5C6AC4' }};"
+  style="--mv-brand: {{ block.settings.brand_color | default: '#6D5EF8' }};"
 >
   <div class="mv-rewards__header">
     <h2 class="mv-rewards__title">{{ block.settings.heading | default: 'My Rewards' }}</h2>
@@ -48,7 +48,7 @@
       "type": "color",
       "id": "brand_color",
       "label": "Brand color",
-      "default": "#5C6AC4"
+      "default": "#6D5EF8"
     },
     {
       "type": "text",
