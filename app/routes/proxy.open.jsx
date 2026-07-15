@@ -128,6 +128,7 @@ export const action = async ({ request }) => {
         claim = await fulfillClaim({
           admin,
           shop,
+          campaignId: campaign.id,
           claim: result.claim,
           reward: result.reward,
         });

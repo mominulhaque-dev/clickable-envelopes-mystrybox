@@ -130,6 +130,56 @@ export function validateCampaignInput(input) {
     }
   }
 
+  // ---- Campaign-level shared discount code ----
+  // A campaign owns at most ONE discount config. discountKind blank/undefined
+  // means "no discount code for this campaign".
+  const DISCOUNT_KINDS = [
+    DISCOUNT_KIND.PERCENTAGE,
+    DISCOUNT_KIND.FIXED_AMOUNT,
+    "free_shipping",
+  ];
+  if (input.discountKind !== undefined) {
+    if (isBlank(input.discountKind)) {
+      value.discountKind = null;
+      value.discountAmount = null;
+    } else if (!DISCOUNT_KINDS.includes(input.discountKind)) {
+      errors.discountKind = "Invalid discount type.";
+    } else {
+      value.discountKind = input.discountKind;
+      // Amount required for percentage/fixed; ignored for free shipping.
+      if (input.discountKind === "free_shipping") {
+        value.discountAmount = null;
+      } else {
+        const amount = Number(input.discountAmount);
+        if (Number.isNaN(amount) || amount <= 0) {
+          errors.discountAmount = "Discount amount must be greater than 0.";
+        } else if (
+          input.discountKind === DISCOUNT_KIND.PERCENTAGE &&
+          amount > 100
+        ) {
+          errors.discountAmount = "Percentage discount cannot exceed 100.";
+        } else {
+          value.discountAmount = amount;
+        }
+      }
+    }
+  }
+
+  if (input.discountUsageLimit !== undefined && !isBlank(input.discountUsageLimit)) {
+    const limit = toInt(input.discountUsageLimit);
+    if (Number.isNaN(limit) || limit < 1) {
+      errors.discountUsageLimit = "Usage limit must be a whole number of 1 or more.";
+    } else {
+      value.discountUsageLimit = limit;
+    }
+  } else if (input.discountUsageLimit !== undefined) {
+    value.discountUsageLimit = null;
+  }
+
+  if (input.discountOncePerCustomer !== undefined) {
+    value.discountOncePerCustomer = Boolean(input.discountOncePerCustomer);
+  }
+
   if (Object.keys(errors).length > 0) return { ok: false, errors };
   return { ok: true, value };
 }

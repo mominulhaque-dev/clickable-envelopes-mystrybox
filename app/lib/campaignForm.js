@@ -33,5 +33,9 @@ export function parseCampaignForm(form) {
     houseEdge: str("houseEdge"),
     eligibilityMode: str("eligibilityMode"),
     eligibility,
+    // Campaign-level shared discount configuration.
+    discountKind: str("discountKind"),
+    discountAmount: str("discountAmount"),
+    discountOncePerCustomer: form.get("discountOncePerCustomer") != null,
   };
 }

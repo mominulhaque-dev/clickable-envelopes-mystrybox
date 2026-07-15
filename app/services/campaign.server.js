@@ -62,6 +62,10 @@ export async function createCampaign(shop, input, { actor, ip } = {}) {
         maxOpensPerCustomer: data.maxOpensPerCustomer ?? 1,
         houseEdge: data.houseEdge ?? 0,
         eligibilityMode: data.eligibilityMode ?? ELIGIBILITY_MODE.ALL,
+        discountKind: data.discountKind ?? null,
+        discountAmount: data.discountAmount ?? null,
+        discountUsageLimit: data.discountUsageLimit ?? null,
+        discountOncePerCustomer: data.discountOncePerCustomer ?? true,
         eligibility: {
           create: eligibilityTargets,
         },
@@ -119,6 +123,21 @@ export async function updateCampaign(shop, id, input, { actor, ip } = {}) {
         )
       : null;
 
+  // Guard: once the shared Shopify discount code exists, its value/type can no
+  // longer be changed here (the real code in Shopify is already fixed). Only the
+  // usage limit and once-per-customer flag stay adjustable via sync.
+  const codeAlreadyLive = !!existing.discountGid;
+  const wantsDiscountValueChange =
+    codeAlreadyLive &&
+    ((data.discountKind !== undefined && data.discountKind !== existing.discountKind) ||
+      (data.discountAmount !== undefined && data.discountAmount !== existing.discountAmount));
+  if (wantsDiscountValueChange) {
+    throw new ValidationError({
+      discountKind:
+        "This campaign's discount code is already live in Shopify and its value can't be changed. Create a new campaign to use a different discount.",
+    });
+  }
+
   await prisma.$transaction(async (tx) => {
     await tx.campaign.update({
       where: { id },
@@ -133,6 +152,15 @@ export async function updateCampaign(shop, id, input, { actor, ip } = {}) {
         maxOpensPerCustomer: data.maxOpensPerCustomer ?? existing.maxOpensPerCustomer,
         houseEdge: data.houseEdge ?? existing.houseEdge,
         eligibilityMode: data.eligibilityMode ?? existing.eligibilityMode,
+        // Discount config (only meaningfully applied before the code is live).
+        ...(data.discountKind !== undefined ? { discountKind: data.discountKind } : {}),
+        ...(data.discountAmount !== undefined ? { discountAmount: data.discountAmount } : {}),
+        ...(data.discountUsageLimit !== undefined
+          ? { discountUsageLimit: data.discountUsageLimit }
+          : {}),
+        ...(data.discountOncePerCustomer !== undefined
+          ? { discountOncePerCustomer: data.discountOncePerCustomer }
+          : {}),
       },
     });
 
@@ -226,6 +254,13 @@ export async function duplicateCampaign(shop, id, { actor, ip } = {}) {
         maxOpensPerCustomer: source.maxOpensPerCustomer,
         houseEdge: source.houseEdge,
         eligibilityMode: source.eligibilityMode,
+        // Copy the discount CONFIG but not the code/gid — the clone provisions
+        // its own single shared code on activation, so two campaigns never
+        // share one Shopify discount code.
+        discountKind: source.discountKind,
+        discountAmount: source.discountAmount,
+        discountUsageLimit: source.discountUsageLimit,
+        discountOncePerCustomer: source.discountOncePerCustomer,
         eligibility: {
           create: source.eligibility.map((e) => ({
             targetType: e.targetType,

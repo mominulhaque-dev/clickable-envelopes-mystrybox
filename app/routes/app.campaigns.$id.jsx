@@ -18,6 +18,7 @@ import {
 } from "../services/campaign.server.js";
 import { getCampaignStats } from "../services/analytics.server.js";
 import { resetCampaign, RESET_SCOPE } from "../services/reset.server.js";
+import { ensureCampaignDiscount } from "../services/campaignDiscount.server.js";
 import { ValidationError } from "../lib/validation.js";
 import { parseCampaignForm } from "../lib/campaignForm.js";
 import { CampaignFormFields } from "../components/CampaignFormFields.jsx";
@@ -55,14 +56,22 @@ export const loader = async ({ request, params }) => {
       houseEdge: campaign.houseEdge,
       eligibilityMode: campaign.eligibilityMode,
       eligibility: campaign.eligibility.map((e) => e.gid).join("\n"),
+      discountKind: campaign.discountKind ?? "",
+      discountAmount: campaign.discountAmount ?? "",
+      discountUsageLimit: campaign.discountUsageLimit ?? "",
     },
-    campaign: { id: campaign.id, name: campaign.name, status: campaign.status },
+    campaign: {
+      id: campaign.id,
+      name: campaign.name,
+      status: campaign.status,
+      discountCode: campaign.discountCode ?? null,
+    },
     stats,
   };
 };
 
 export const action = async ({ request, params }) => {
-  const { session } = await authenticate.admin(request);
+  const { session, admin } = await authenticate.admin(request);
   const shop = session.shop;
   const form = await request.formData();
   const intent = form.get("intent");
@@ -70,7 +79,16 @@ export const action = async ({ request, params }) => {
 
   try {
     if (intent === "status") {
-      await setStatus(shop, params.id, form.get("status"), ctx);
+      const nextStatus = form.get("status");
+      await setStatus(shop, params.id, nextStatus, ctx);
+      // On activation, provision the campaign's single shared discount code
+      // (idempotent) so the first winner doesn't wait on creation.
+      if (nextStatus === CAMPAIGN_STATUS.ACTIVE) {
+        const campaign = await getCampaign(shop, params.id);
+        if (campaign?.discountKind && !campaign.discountGid) {
+          await ensureCampaignDiscount(admin, shop, params.id);
+        }
+      }
       return { ok: true, intent };
     }
     if (intent === "reset") {

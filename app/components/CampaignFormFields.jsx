@@ -4,6 +4,14 @@ import {
   ENVELOPE_COUNT_OPTIONS,
 } from "../lib/constants.js";
 
+/** Campaign discount "kind" options for the single shared code. */
+const DISCOUNT_KIND_OPTIONS = [
+  { value: "", label: "No discount code" },
+  { value: "percentage", label: "Percentage off" },
+  { value: "fixed_amount", label: "Fixed amount off" },
+  { value: "free_shipping", label: "Free shipping" },
+];
+
 /**
  * Shared campaign form fields used by both the create and edit routes.
  * `values` seeds the inputs (echoed back on validation error or loaded from an
@@ -73,6 +81,42 @@ export function CampaignFormFields({ errors = {}, values = {} }) {
             type="number"
             value={String(v("houseEdge", 0))}
             error={errors.houseEdge}
+          />
+        </s-stack>
+      </s-section>
+
+      <s-section heading="Discount code">
+        <s-stack direction="block" gap="base">
+          <s-paragraph>
+            The campaign uses a single shared Shopify discount code. Every
+            customer who wins a discount reward receives this same code, so your
+            Shopify Admin stays clean.
+          </s-paragraph>
+          <s-select
+            label="Discount type"
+            name="discountKind"
+            value={v("discountKind")}
+            error={errors.discountKind}
+          >
+            {DISCOUNT_KIND_OPTIONS.map((o) => (
+              <s-option key={o.value} value={o.value}>
+                {o.label}
+              </s-option>
+            ))}
+          </s-select>
+          <s-text-field
+            label="Discount amount (percentage or fixed amount; ignored for free shipping)"
+            name="discountAmount"
+            type="number"
+            value={v("discountAmount")}
+            error={errors.discountAmount}
+          />
+          <s-text-field
+            label="Code usage limit (blank = matches max winners / unlimited)"
+            name="discountUsageLimit"
+            type="number"
+            value={v("discountUsageLimit")}
+            error={errors.discountUsageLimit}
           />
         </s-stack>
       </s-section>
